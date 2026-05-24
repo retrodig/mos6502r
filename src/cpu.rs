@@ -9,6 +9,7 @@ pub struct CPU {
     pc: u16,                // Program Counter
     sp: u8,                 // Stack Pointer
     status: StatusRegister, // Status Register
+    halted: bool,
 }
 
 impl CPU {
@@ -20,6 +21,19 @@ impl CPU {
             pc: 0,
             sp: 0xFF, // Initial value of stack pointer is 0xFF
             status: StatusRegister::new(),
+            halted: false,
+        }
+    }
+
+    pub fn step(&mut self, memory: &mut Memory) {
+        if !self.halted {
+            self.execute(memory);
+        }
+    }
+
+    pub fn run(&mut self, memory: &mut Memory) {
+        while !self.halted {
+            self.execute(memory);
         }
     }
 
@@ -44,6 +58,7 @@ impl CPU {
                 let lo = memory.read(0xFFFE) as u16;
                 let hi = memory.read(0xFFFF) as u16;
                 self.pc = (hi << 8) | lo;
+                self.halted = true;
             }
             0x01 => {
                 // ORA ($NN,X)
