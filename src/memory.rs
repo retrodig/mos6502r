@@ -14,4 +14,10 @@ impl Memory {
     pub fn write(&mut self, address: u16, data: u8) {
         self.data[address as usize] = data;
     }
+
+    pub fn load(&mut self, start: u16, data: &[u8]) {
+        for (i, &byte) in data.iter().enumerate() {
+            self.data[start as usize + i] = byte;
+        }
+    }
 }

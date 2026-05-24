@@ -37,6 +37,18 @@ impl CPU {
         }
     }
 
+    pub fn set_pc(&mut self, addr: u16) { self.pc = addr; }
+    pub fn a(&self) -> u8 { self.a }
+    pub fn x(&self) -> u8 { self.x }
+    pub fn y(&self) -> u8 { self.y }
+    pub fn pc(&self) -> u16 { self.pc }
+    pub fn sp(&self) -> u8 { self.sp }
+    pub fn is_halted(&self) -> bool { self.halted }
+    pub fn carry(&self) -> bool { self.status.c }
+    pub fn zero(&self) -> bool { self.status.z }
+    pub fn negative(&self) -> bool { self.status.n }
+    pub fn overflow(&self) -> bool { self.status.v }
+
     fn execute(&mut self, memory: &mut Memory) {
         let opcode = memory.read(self.pc);
         self.pc += 1;
