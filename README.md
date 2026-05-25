@@ -14,15 +14,16 @@ cargo test
 ```rust
 use mos6502r::cpu::CPU;
 use mos6502r::memory::Memory;
+use mos6502r::opcodes::*;  // オペコード定数
 
 let mut cpu = CPU::new();
 let mut mem = Memory::new();
 
 // プログラムをメモリにロード
 mem.load(0x0200, &[
-    0xA9, 0x42,  // LDA #$42
-    0x85, 0x00,  // STA $00
-    0x00,        // BRK
+    LDA_IMM, 0x42,  // LDA #$42
+    STA_ZP,  0x00,  // STA $00
+    BRK,            // BRK
 ]);
 cpu.set_pc(0x0200);
 
@@ -32,6 +33,21 @@ cpu.run(&mut mem);
 // または 1 命令ずつ実行
 cpu.step(&mut mem);
 ```
+
+### opcodes
+
+`mos6502r::opcodes` に全オペコードの定数が定義されている。命名規則は `命令_アドレッシングモード`。
+
+| サフィックス | アドレッシングモード | 例 |
+|---|---|---|
+| `_IMM` | イミディエート `#$NN` | `LDA_IMM` |
+| `_ZP` | ゼロページ `$NN` | `STA_ZP` |
+| `_ZPX` / `_ZPY` | ゼロページ indexed | `LDY_ZPX` |
+| `_ABS` | アブソリュート `$NNNN` | `JMP_ABS` |
+| `_ABSX` / `_ABSY` | アブソリュート indexed | `STA_ABSY` |
+| `_INDX` / `_INDY` | インダイレクト | `LDA_INDX` |
+| `_ACC` | アキュムレータ | `ASL_ACC` |
+| なし | インプライド・レラティブ | `TAX`, `BNE`, `BRK` |
 
 ### CPU API
 

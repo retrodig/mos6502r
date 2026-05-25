@@ -15,6 +15,7 @@
 
 use mos6502r::cpu::CPU;
 use mos6502r::memory::Memory;
+use mos6502r::opcodes::*;
 
 fn main() {
     let mut cpu = CPU::new();
@@ -22,19 +23,19 @@ fn main() {
 
     #[rustfmt::skip]
     let program: &[u8] = &[
-        0xA9, 0x00, 0x85, 0x00, 0x85, 0x10,  // LDA #0; STA $00; STA $10
-        0xA9, 0x01, 0x85, 0x01, 0x85, 0x11,  // LDA #1; STA $01; STA $11
-        0xA0, 0x02,                            // LDY #2
-        0xA2, 0x08,                            // LDX #8
-        0x18,                                  // CLC          ← loop
-        0xA5, 0x00, 0x65, 0x01, 0x85, 0x02,  // LDA $00; ADC $01; STA $02
-        0xA5, 0x01, 0x85, 0x00,               // LDA $01; STA $00
-        0xA5, 0x02, 0x85, 0x01,               // LDA $02; STA $01
-        0x99, 0x10, 0x00,                      // STA $0010,Y
-        0xC8,                                  // INY
-        0xCA,                                  // DEX
-        0xD0, 0xEA,                            // BNE loop
-        0x00,                                  // BRK
+        LDA_IMM, 0x00, STA_ZP, 0x00, STA_ZP, 0x10,  // prev=0, output[0]=0
+        LDA_IMM, 0x01, STA_ZP, 0x01, STA_ZP, 0x11,  // curr=1, output[1]=1
+        LDY_IMM, 0x02,                                // Y = 2
+        LDX_IMM, 0x08,                                // X = 8 (残り8項)
+        CLC,                                          //        ← loop
+        LDA_ZP, 0x00, ADC_ZP, 0x01, STA_ZP, 0x02,   // next = prev + curr
+        LDA_ZP, 0x01, STA_ZP, 0x00,                  // prev = curr
+        LDA_ZP, 0x02, STA_ZP, 0x01,                  // curr = next
+        STA_ABSY, 0x10, 0x00,                         // output[Y] = curr
+        INY,
+        DEX,
+        BNE, 0xEA,                                    // BNE loop
+        BRK,
     ];
 
     mem.load(0x0200, program);

@@ -10,6 +10,7 @@
 
 use mos6502r::cpu::CPU;
 use mos6502r::memory::Memory;
+use mos6502r::opcodes::*;
 
 fn main() {
     let mut cpu = CPU::new();
@@ -21,16 +22,16 @@ fn main() {
 
     #[rustfmt::skip]
     let program: &[u8] = &[
-        0xA9, 0x00,              // LDA #$00
-        0xA2, 0x08,              // LDX #8
-        0xA0, 0x00,              // LDY #0
-        0x18,                    // CLC          ← loop
-        0x79, 0x10, 0x00,        // ADC $0010,Y
-        0xC8,                    // INY
-        0xCA,                    // DEX
-        0xD0, 0xF8,              // BNE loop
-        0x85, 0x00,              // STA $00
-        0x00,                    // BRK
+        LDA_IMM, 0x00,           // LDA #$00
+        LDX_IMM, 0x08,           // LDX #8
+        LDY_IMM, 0x00,           // LDY #0
+        CLC,                     //        ← loop
+        ADC_ABSY, 0x10, 0x00,    // ADC $0010,Y
+        INY,
+        DEX,
+        BNE, 0xF8,               // BNE loop
+        STA_ZP, 0x00,            // STA $00
+        BRK,
     ];
 
     mem.load(0x0200, program);
