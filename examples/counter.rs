@@ -6,8 +6,8 @@
 // loop:
 //   TXA           ; A = X
 //   STA $0300,Y   ; メモリに書き込み
-//   DEX
-//   INY
+//   INY           ; インデックス先送り（DEX より先に置くことで Z フラグを保護）
+//   DEX           ; BNE はこの Z を見る
 //   BNE loop
 //   BRK
 
@@ -24,9 +24,9 @@ fn main() {
         0xA0, 0x00,              // LDY #$00
         0x8A,                    // TXA        ← loop
         0x99, 0x00, 0x03,        // STA $0300,Y
-        0xCA,                    // DEX
         0xC8,                    // INY
-        0xD0, 0xF8,              // BNE loop
+        0xCA,                    // DEX
+        0xD0, 0xF8,              // BNE loop  (Z from DEX)
         0x00,                    // BRK
     ];
 
