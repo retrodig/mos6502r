@@ -1,4 +1,5 @@
 use crate::memory::Memory;
+use crate::opcodes::*;
 use crate::register::StatusRegister;
 
 #[derive(Debug)]
@@ -54,7 +55,7 @@ impl CPU {
         self.pc += 1;
 
         match opcode {
-            0x00 => {
+            BRK => {
                 // BRK Instruction
                 // Push PC+1 and status, set I, jump to IRQ/BRK vector ($FFFE/$FFFF)
                 let return_addr = self.pc; // PC already points to next byte after opcode fetch
@@ -72,20 +73,20 @@ impl CPU {
                 self.pc = (hi << 8) | lo;
                 self.halted = true;
             }
-            0x01 => {
+            ORA_INDX => {
                 // ORA ($NN,X)
                 let addr = self.indirect_x_addr(memory);
                 let data = memory.read(addr);
                 self.ora(data);
             }
-            0x05 => {
+            ORA_ZP => {
                 // ORA $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.ora(data);
             }
-            0x06 => {
+            ASL_ZP => {
                 // ASL $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -93,30 +94,30 @@ impl CPU {
                 let result = self.asl(data);
                 memory.write(addr, result);
             }
-            0x08 => {
+            PHP => {
                 // PHP (Push Processor Status)
                 memory.write(0x0100 + self.sp as u16, self.status.as_byte());
                 self.sp = self.sp.wrapping_sub(1);
             }
-            0x09 => {
+            ORA_IMM => {
                 // ORA #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
                 self.ora(immediate);
             }
-            0x0A => {
+            ASL_ACC => {
                 // ASL A (Accumulator)
                 let result = self.asl(self.a);
                 self.a = result;
             }
-            0x0D => {
+            ORA_ABS => {
                 // ORA $NNNN (Absolute)
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.ora(data);
             }
-            0x0E => {
+            ASL_ABS => {
                 // ASL $NNNN (Absolute)
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -124,7 +125,7 @@ impl CPU {
                 let result = self.asl(data);
                 memory.write(addr, result);
             }
-            0x10 => {
+            BPL => {
                 // BPL (Branch on Plus)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
@@ -132,21 +133,21 @@ impl CPU {
                     self.pc = self.pc.wrapping_add(offset as u16);
                 }
             }
-            0x11 => {
+            ORA_INDY => {
                 // ORA ($NN),Y
                 let addr = self.indirect_y_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.ora(data);
             }
-            0x15 => {
+            ORA_ZPX => {
                 // ORA $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.ora(data);
             }
-            0x16 => {
+            ASL_ZPX => {
                 // ASL $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
@@ -154,25 +155,25 @@ impl CPU {
                 let result = self.asl(data);
                 memory.write(addr, result);
             }
-            0x18 => {
+            CLC => {
                 // CLC (Clear Carry)
                 self.status.c = false;
             }
-            0x19 => {
+            ORA_ABSY => {
                 // ORA $NNNN,Y (Absolute,Y)
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.ora(data);
             }
-            0x1D => {
+            ORA_ABSX => {
                 // ORA $NNNN,X (Absolute,X)
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.ora(data);
             }
-            0x1E => {
+            ASL_ABSX => {
                 // ASL $NNNN,X (Absolute,X)
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
@@ -180,7 +181,7 @@ impl CPU {
                 let result = self.asl(data);
                 memory.write(addr, result);
             }
-            0x20 => {
+            JSR => {
                 // JSR $NNNN
                 let target = self.absolute_addr(memory);
                 let return_addr = self.pc + 1; // Address of last operand byte
@@ -190,28 +191,28 @@ impl CPU {
                 self.sp = self.sp.wrapping_sub(1);
                 self.pc = target;
             }
-            0x21 => {
+            AND_INDX => {
                 // AND ($NN,X)
                 let addr = self.indirect_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.and(data);
             }
-            0x24 => {
+            BIT_ZP => {
                 // BIT $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.bit(data);
             }
-            0x25 => {
+            AND_ZP => {
                 // AND $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.and(data);
             }
-            0x26 => {
+            ROL_ZP => {
                 // ROL $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -219,39 +220,39 @@ impl CPU {
                 let result = self.rol(data);
                 memory.write(addr, result);
             }
-            0x28 => {
+            PLP => {
                 // PLP (Pull Processor Status)
                 self.sp = self.sp.wrapping_add(1);
                 let status = memory.read(0x0100 + self.sp as u16);
                 // ステータスレジスタを復元する処理を追加する必要があります
                 self.status = StatusRegister::from_byte(status);
             }
-            0x29 => {
+            AND_IMM => {
                 // AND #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
                 self.and(immediate);
             }
-            0x2A => {
+            ROL_ACC => {
                 // ROL A
                 let result = self.rol(self.a);
                 self.a = result;
             }
-            0x2C => {
+            BIT_ABS => {
                 // BIT $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.bit(data);
             }
-            0x2D => {
+            AND_ABS => {
                 // AND $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.and(data);
             }
-            0x2E => {
+            ROL_ABS => {
                 // ROL $NNNN (Absolute)
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -259,7 +260,7 @@ impl CPU {
                 let result = self.rol(data);
                 memory.write(addr, result);
             }
-            0x30 => {
+            BMI => {
                 // BMI (Branch on Minus)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
@@ -267,21 +268,21 @@ impl CPU {
                     self.pc = self.pc.wrapping_add(offset as u16);
                 }
             }
-            0x31 => {
+            AND_INDY => {
                 // AND ($NN),Y
                 let addr = self.indirect_y_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.and(data);
             }
-            0x35 => {
+            AND_ZPX => {
                 // AND $NN,X
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.and(data);
             }
-            0x36 => {
+            ROL_ZPX => {
                 // ROL $NN,X
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
@@ -289,25 +290,25 @@ impl CPU {
                 let result = self.rol(data);
                 memory.write(addr, result);
             }
-            0x38 => {
+            SEC => {
                 // SEC (Set Carry Flag)
                 self.status.c = true;
             }
-            0x39 => {
+            AND_ABSY => {
                 // AND $NNNN,Y
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.and(data);
             }
-            0x3D => {
+            AND_ABSX => {
                 // AND $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.and(data);
             }
-            0x3E => {
+            ROL_ABSX => {
                 // ROL $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
@@ -315,7 +316,7 @@ impl CPU {
                 let result = self.rol(data);
                 memory.write(addr, result);
             }
-            0x40 => {
+            RTI => {
                 // RTI (Return from Interrupt)
                 self.sp = self.sp.wrapping_add(1);
                 let status = memory.read(0x0100 + self.sp as u16);
@@ -326,21 +327,21 @@ impl CPU {
                 let hi = memory.read(0x0100 + self.sp as u16) as u16;
                 self.pc = (hi << 8) | lo;
             }
-            0x41 => {
+            EOR_INDX => {
                 // EOR ($NN,X)
                 let addr = self.indirect_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.eor(data);
             }
-            0x45 => {
+            EOR_ZP => {
                 // EOR $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.eor(data);
             }
-            0x46 => {
+            LSR_ZP => {
                 // LSR $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -348,35 +349,35 @@ impl CPU {
                 let result = self.lsr(data);
                 memory.write(addr, result);
             }
-            0x48 => {
+            PHA => {
                 // PHA (Push Accumulator)
                 memory.write(0x0100 + self.sp as u16, self.a);
                 self.sp = self.sp.wrapping_sub(1);
             }
-            0x49 => {
+            EOR_IMM => {
                 // EOR #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
                 self.eor(immediate);
             }
-            0x4A => {
+            LSR_ACC => {
                 // LSR A (Accumulator)
                 let result = self.lsr(self.a);
                 self.a = result;
             }
-            0x4C => {
+            JMP_ABS => {
                 // JMP $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc = addr;
             }
-            0x4D => {
+            EOR_ABS => {
                 // EOR $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.eor(data);
             }
-            0x50 => {
+            BVC => {
                 // BVC (Branch on Overflow Clear)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
@@ -384,21 +385,21 @@ impl CPU {
                     self.pc = self.pc.wrapping_add(offset as u16);
                 }
             }
-            0x51 => {
+            EOR_INDY => {
                 // EOR ($NN),Y
                 let addr = self.indirect_y_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.eor(data);
             }
-            0x55 => {
+            EOR_ZPX => {
                 // EOR $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.eor(data);
             }
-            0x56 => {
+            LSR_ZPX => {
                 // LSR $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
@@ -406,25 +407,25 @@ impl CPU {
                 let result = self.lsr(data);
                 memory.write(addr, result);
             }
-            0x58 => {
+            CLI => {
                 // CLI (Clear Interrupt Disable)
                 self.status.i = false;
             }
-            0x59 => {
+            EOR_ABSY => {
                 // EOR $NNNN,Y
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.eor(data);
             }
-            0x5D => {
+            EOR_ABSX => {
                 // EOR $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.eor(data);
             }
-            0x5E => {
+            LSR_ABSX => {
                 // LSR $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
@@ -432,7 +433,7 @@ impl CPU {
                 let result = self.lsr(data);
                 memory.write(addr, result);
             }
-            0x60 => {
+            RTS => {
                 // RTS (Return from Subroutine)
                 self.sp = self.sp.wrapping_add(1);
                 let lo = memory.read(0x0100 + self.sp as u16) as u16;
@@ -440,21 +441,21 @@ impl CPU {
                 let hi = memory.read(0x0100 + self.sp as u16) as u16;
                 self.pc = ((hi << 8) | lo).wrapping_add(1);
             }
-            0x61 => {
+            ADC_INDX => {
                 // ADC ($NN,X)
                 let addr = self.indirect_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.adc(data);
             }
-            0x65 => {
+            ADC_ZP => {
                 // ADC $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.adc(data);
             }
-            0x66 => {
+            ROR_ZP => {
                 // ROR $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -462,35 +463,35 @@ impl CPU {
                 let result = self.ror(data);
                 memory.write(addr, result);
             }
-            0x68 => {
+            PLA => {
                 // PLA (Pull Accumulator)
                 self.sp = self.sp.wrapping_add(1);
                 self.a = memory.read(0x0100 + self.sp as u16);
             }
-            0x69 => {
+            ADC_IMM => {
                 // ADC #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
                 self.adc(immediate);
             }
-            0x6A => {
+            ROR_ACC => {
                 // ROR A (Accumulator)
                 let result = self.ror(self.a);
                 self.a = result;
             }
-            0x6C => {
+            JMP_IND => {
                 // JMP ($NNNN)
                 let addr = self.indirect_addr(memory);
                 self.pc = addr;
             }
-            0x6D => {
+            ADC_ABS => {
                 // ADC $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.adc(data);
             }
-            0x6E => {
+            ROR_ABS => {
                 // ROR $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -498,7 +499,7 @@ impl CPU {
                 let result = self.ror(data);
                 memory.write(addr, result);
             }
-            0x70 => {
+            BVS => {
                 // BVS (Branch on Overflow Set)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
@@ -506,21 +507,21 @@ impl CPU {
                     self.pc = self.pc.wrapping_add(offset as u16);
                 }
             }
-            0x71 => {
+            ADC_INDY => {
                 // ADC ($NN),Y
                 let addr = self.indirect_y_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.adc(data);
             }
-            0x75 => {
+            ADC_ZPX => {
                 // ADC $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.adc(data);
             }
-            0x76 => {
+            ROR_ZPX => {
                 // ROR $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
@@ -528,25 +529,25 @@ impl CPU {
                 let result = self.ror(data);
                 memory.write(addr, result);
             }
-            0x78 => {
+            SEI => {
                 // SEI (Set Interrupt Disable)
                 self.status.i = true;
             }
-            0x79 => {
+            ADC_ABSY => {
                 // ADC $NNNN,Y
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.adc(data);
             }
-            0x7D => {
+            ADC_ABSX => {
                 // ADC $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.adc(data);
             }
-            0x7E => {
+            ROR_ABSX => {
                 // ROR $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
@@ -554,74 +555,74 @@ impl CPU {
                 let result = self.ror(data);
                 memory.write(addr, result);
             }
-            0x80 => {
+            BRA => {
                 // BRA (Branch Always)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
                 self.pc = self.pc.wrapping_add(offset as u16);
             }
-            0x81 => {
+            STA_INDX => {
                 // STA ($NN,X)
                 let addr = self.indirect_x_addr(memory);
                 self.pc += 1;
                 memory.write(addr, self.a);
             }
-            0x84 => {
+            STY_ZP => {
                 // STY $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 memory.write(addr, self.y);
             }
-            0x85 => {
+            STA_ZP => {
                 // STA $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 memory.write(addr, self.a);
             }
-            0x86 => {
+            STX_ZP => {
                 // STX $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 memory.write(addr, self.x);
             }
-            0x88 => {
+            DEY => {
                 // DEY (Decrement Y Register)
                 self.y = self.y.wrapping_sub(1);
                 self.status.z = self.y == 0;
                 self.status.n = self.y & 0x80 != 0;
             }
-            0x89 => {
+            BIT_IMM => {
                 // BIT $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.bit(data);
             }
-            0x8A => {
+            TXA => {
                 // TXA (Transfer X Register to Accumulator)
                 self.a = self.x;
                 self.status.z = self.a == 0;
                 self.status.n = self.a & 0x80 != 0;
             }
-            0x8C => {
+            STY_ABS => {
                 // STY $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 memory.write(addr, self.y);
             }
-            0x8D => {
+            STA_ABS => {
                 // STA $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 memory.write(addr, self.a);
             }
-            0x8E => {
+            STX_ABS => {
                 // STX $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 memory.write(addr, self.x);
             }
-            0x90 => {
+            BCC => {
                 // BCC (Branch on Carry Clear)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
@@ -629,53 +630,53 @@ impl CPU {
                     self.pc = self.pc.wrapping_add(offset as u16);
                 }
             }
-            0x91 => {
+            STA_INDY => {
                 // STA ($NN),Y
                 let addr = self.indirect_y_addr(memory);
                 self.pc += 1;
                 memory.write(addr, self.a);
             }
-            0x94 => {
+            STY_ZPX => {
                 // STY $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 memory.write(addr, self.y);
             }
-            0x95 => {
+            STA_ZPX => {
                 // STA $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 memory.write(addr, self.a);
             }
-            0x96 => {
+            STX_ZPY => {
                 // STX $NN,Y (Zero Page,Y)
                 let addr = self.zero_page_y_addr(memory);
                 self.pc += 1;
                 memory.write(addr, self.x);
             }
-            0x98 => {
+            TYA => {
                 // TYA (Transfer Y Register to Accumulator)
                 self.a = self.y;
                 self.status.z = self.a == 0;
                 self.status.n = self.a & 0x80 != 0;
             }
-            0x99 => {
+            STA_ABSY => {
                 // STA $NNNN,Y
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
                 memory.write(addr, self.a);
             }
-            0x9A => {
+            TXS => {
                 // TXS (Transfer X Register to Stack Pointer)
                 self.sp = self.x;
             }
-            0x9D => {
+            STA_ABSX => {
                 // STA $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
                 memory.write(addr, self.a);
             }
-            0xA0 => {
+            LDY_IMM => {
                 // LDY #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
@@ -683,14 +684,14 @@ impl CPU {
                 self.status.z = self.y == 0;
                 self.status.n = self.y & 0x80 != 0;
             }
-            0xA1 => {
+            LDA_INDX => {
                 // LDA ($NN,X)
                 let addr = self.indirect_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.lda(data);
             }
-            0xA2 => {
+            LDX_IMM => {
                 // LDX #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
@@ -698,7 +699,7 @@ impl CPU {
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xA4 => {
+            LDY_ZP => {
                 // LDY $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -706,14 +707,14 @@ impl CPU {
                 self.status.z = self.y == 0;
                 self.status.n = self.y & 0x80 != 0;
             }
-            0xA5 => {
+            LDA_ZP => {
                 // LDA $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.lda(data);
             }
-            0xA6 => {
+            LDX_ZP => {
                 // LDX $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -721,25 +722,25 @@ impl CPU {
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xA8 => {
+            TAY => {
                 // TAY (Transfer Accumulator to Y Register)
                 self.y = self.a;
                 self.status.z = self.y == 0;
                 self.status.n = self.y & 0x80 != 0;
             }
-            0xA9 => {
+            LDA_IMM => {
                 // LDA #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
                 self.lda(immediate);
             }
-            0xAA => {
+            TAX => {
                 // TAX (Transfer Accumulator to X Register)
                 self.x = self.a;
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xAC => {
+            LDY_ABS => {
                 // LDY $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -747,14 +748,14 @@ impl CPU {
                 self.status.z = self.y == 0;
                 self.status.n = self.y & 0x80 != 0;
             }
-            0xAD => {
+            LDA_ABS => {
                 // LDA $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.lda(data);
             }
-            0xAE => {
+            LDX_ABS => {
                 // LDX $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -762,7 +763,7 @@ impl CPU {
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xB0 => {
+            BCS => {
                 // BCS (Branch on Carry Set)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
@@ -770,14 +771,14 @@ impl CPU {
                     self.pc = self.pc.wrapping_add(offset as u16);
                 }
             }
-            0xB1 => {
+            LDA_INDY => {
                 // LDA ($NN),Y
                 let addr = self.indirect_y_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.lda(data);
             }
-            0xB4 => {
+            LDY_ZPX => {
                 // LDY $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
@@ -785,14 +786,14 @@ impl CPU {
                 self.status.z = self.y == 0;
                 self.status.n = self.y & 0x80 != 0;
             }
-            0xB5 => {
+            LDA_ZPX => {
                 // LDA $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.lda(data);
             }
-            0xB6 => {
+            LDX_ZPY => {
                 // LDX $NN,Y (Zero Page,Y)
                 let addr = self.zero_page_y_addr(memory);
                 self.pc += 1;
@@ -800,24 +801,24 @@ impl CPU {
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xB8 => {
+            CLV => {
                 // CLV (Clear Overflow Flag)
                 self.status.v = false;
             }
-            0xB9 => {
+            LDA_ABSY => {
                 // LDA $NNNN,Y
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.lda(data);
             }
-            0xBA => {
+            TSX => {
                 // TSX (Transfer Stack Pointer to X Register)
                 self.x = self.sp;
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xBC => {
+            LDY_ABSX => {
                 // LDY $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
@@ -825,14 +826,14 @@ impl CPU {
                 self.status.z = self.y == 0;
                 self.status.n = self.y & 0x80 != 0;
             }
-            0xBD => {
+            LDA_ABSX => {
                 // LDA $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.lda(data);
             }
-            0xBE => {
+            LDX_ABSY => {
                 // LDX $NNNN,Y
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
@@ -840,7 +841,7 @@ impl CPU {
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xC0 => {
+            CPY_IMM => {
                 // CPY #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
@@ -849,14 +850,14 @@ impl CPU {
                 self.status.z = result == 0;
                 self.status.n = result & 0x80 != 0;
             }
-            0xC1 => {
+            CMP_INDX => {
                 // CMP ($NN,X)
                 let addr = self.indirect_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.cmp(data);
             }
-            0xC4 => {
+            CPY_ZP => {
                 // CPY $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -866,14 +867,14 @@ impl CPU {
                 self.status.z = result == 0;
                 self.status.n = result & 0x80 != 0;
             }
-            0xC5 => {
+            CMP_ZP => {
                 // CMP $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.cmp(data);
             }
-            0xC6 => {
+            DEC_ZP => {
                 // DEC $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -881,25 +882,25 @@ impl CPU {
                 let result = self.dec(data);
                 memory.write(addr, result);
             }
-            0xC8 => {
+            INY => {
                 // INY (Increment Y Register)
                 self.y = self.y.wrapping_add(1);
                 self.status.z = self.y == 0;
                 self.status.n = self.y & 0x80 != 0;
             }
-            0xC9 => {
+            CMP_IMM => {
                 // CMP #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
                 self.cmp(immediate);
             }
-            0xCA => {
+            DEX => {
                 // DEX (Decrement X Register)
                 self.x = self.x.wrapping_sub(1);
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xCC => {
+            CPY_ABS => {
                 // CPY $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -909,14 +910,14 @@ impl CPU {
                 self.status.z = result == 0;
                 self.status.n = result & 0x80 != 0;
             }
-            0xCD => {
+            CMP_ABS => {
                 // CMP $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.cmp(data);
             }
-            0xCE => {
+            DEC_ABS => {
                 // DEC $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -924,7 +925,7 @@ impl CPU {
                 let result = self.dec(data);
                 memory.write(addr, result);
             }
-            0xD0 => {
+            BNE => {
                 // BNE (Branch on Not Equal)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
@@ -932,21 +933,21 @@ impl CPU {
                     self.pc = self.pc.wrapping_add(offset as u16);
                 }
             }
-            0xD1 => {
+            CMP_INDY => {
                 // CMP ($NN),Y
                 let addr = self.indirect_y_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.cmp(data);
             }
-            0xD5 => {
+            CMP_ZPX => {
                 // CMP $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.cmp(data);
             }
-            0xD6 => {
+            DEC_ZPX => {
                 // DEC $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
@@ -954,25 +955,25 @@ impl CPU {
                 let result = self.dec(data);
                 memory.write(addr, result);
             }
-            0xD8 => {
+            CLD => {
                 // CLD (Clear Decimal Mode)
                 self.status.d = false;
             }
-            0xD9 => {
+            CMP_ABSY => {
                 // CMP $NNNN,Y
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.cmp(data);
             }
-            0xDD => {
+            CMP_ABSX => {
                 // CMP $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.cmp(data);
             }
-            0xDE => {
+            DEC_ABSX => {
                 // DEC $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
@@ -980,7 +981,7 @@ impl CPU {
                 let result = self.dec(data);
                 memory.write(addr, result);
             }
-            0xE0 => {
+            CPX_IMM => {
                 // CPX #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
@@ -989,14 +990,14 @@ impl CPU {
                 self.status.z = result == 0;
                 self.status.n = result & 0x80 != 0;
             }
-            0xE1 => {
+            SBC_INDX => {
                 // SBC ($NN,X)
                 let addr = self.indirect_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.sbc(data);
             }
-            0xE4 => {
+            CPX_ZP => {
                 // CPX $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -1006,14 +1007,14 @@ impl CPU {
                 self.status.z = result == 0;
                 self.status.n = result & 0x80 != 0;
             }
-            0xE5 => {
+            SBC_ZP => {
                 // SBC $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.sbc(data);
             }
-            0xE6 => {
+            INC_ZP => {
                 // INC $NN (Zero Page)
                 let addr = self.zero_page_addr(memory);
                 self.pc += 1;
@@ -1021,22 +1022,22 @@ impl CPU {
                 let result = self.inc(data);
                 memory.write(addr, result);
             }
-            0xE8 => {
+            INX => {
                 // INX (Increment X Register)
                 self.x = self.x.wrapping_add(1);
                 self.status.z = self.x == 0;
                 self.status.n = self.x & 0x80 != 0;
             }
-            0xE9 => {
+            SBC_IMM => {
                 // SBC #$NN
                 let immediate = memory.read(self.pc);
                 self.pc += 1;
                 self.sbc(immediate);
             }
-            0xEA => {
+            NOP => {
                 // NOP (No Operation)
             }
-            0xEC => {
+            CPX_ABS => {
                 // CPX $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -1046,14 +1047,14 @@ impl CPU {
                 self.status.z = result == 0;
                 self.status.n = result & 0x80 != 0;
             }
-            0xED => {
+            SBC_ABS => {
                 // SBC $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.sbc(data);
             }
-            0xEE => {
+            INC_ABS => {
                 // INC $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
@@ -1061,7 +1062,7 @@ impl CPU {
                 let result = self.inc(data);
                 memory.write(addr, result);
             }
-            0xF0 => {
+            BEQ => {
                 // BEQ (Branch on Equal)
                 let offset = memory.read(self.pc) as i8;
                 self.pc += 1;
@@ -1069,21 +1070,21 @@ impl CPU {
                     self.pc = self.pc.wrapping_add(offset as u16);
                 }
             }
-            0xF1 => {
+            SBC_INDY => {
                 // SBC ($NN),Y
                 let addr = self.indirect_y_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.sbc(data);
             }
-            0xF5 => {
+            SBC_ZPX => {
                 // SBC $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
                 let data = memory.read(addr);
                 self.sbc(data);
             }
-            0xF6 => {
+            INC_ZPX => {
                 // INC $NN,X (Zero Page,X)
                 let addr = self.zero_page_x_addr(memory);
                 self.pc += 1;
@@ -1091,25 +1092,25 @@ impl CPU {
                 let result = self.inc(data);
                 memory.write(addr, result);
             }
-            0xF8 => {
+            SED => {
                 // SED (Set Decimal Mode)
                 self.status.d = true;
             }
-            0xF9 => {
+            SBC_ABSY => {
                 // SBC $NNNN,Y
                 let addr = self.absolute_y_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.sbc(data);
             }
-            0xFD => {
+            SBC_ABSX => {
                 // SBC $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
                 let data = memory.read(addr);
                 self.sbc(data);
             }
-            0xFE => {
+            INC_ABSX => {
                 // INC $NNNN,X
                 let addr = self.absolute_x_addr(memory);
                 self.pc += 2;
@@ -1117,7 +1118,7 @@ impl CPU {
                 let result = self.inc(data);
                 memory.write(addr, result);
             }
-            0x4E => {
+            LSR_ABS => {
                 // LSR $NNNN
                 let addr = self.absolute_addr(memory);
                 self.pc += 2;
